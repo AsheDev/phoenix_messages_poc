@@ -1,0 +1,166 @@
+<style>
+  #latest-messages {
+    height: 30em;
+    background-color: #2f2e2e;
+    border: 5px solid #9b4dca;
+    border-radius: 5px;
+    overflow-y: scroll;
+    overflow-x: clip;
+  }
+  #input-container {
+    background-color: #262323;
+    width: 98%;
+    height: 11.5em;
+    border-radius: 5px;
+    margin-top: 1em;
+    display: flex;
+    border: 5px solid #9b4dca;
+    margin-left: 0.5em;
+  }
+  .message-container {
+    background-color: #bdbdbd;
+    margin: .6em .5em 0 .5em;
+    border-radius: 5px;
+  }
+  .message-container-user {
+    /* background-color: #2f2e2e; */
+    background-color: #642d2d;
+    color: white;
+    margin: .6em .5em 0 .5em;
+    border-radius: 5px;
+  }
+  .active-user-element {
+    background-color: #642d2d;
+    color: white;
+    border-radius: 5px;
+    margin-top: .2em;
+  }
+  .user-element {
+    background-color: black;
+    color: white;
+    border-radius: 5px;
+    margin-top: .2em;
+  }
+  .user-id {
+    margin: 0 0 0 .5em;
+    font-size: 15px;
+  }
+  .user-message {
+    padding: .5em;
+    margin-bottom: 0;
+  }
+  textarea {
+    color: white;
+    width: 95%;
+    margin-left: 0.7em;
+  }
+  #submit {
+    margin-left: 1em;
+  }
+  label {
+    color: white;
+  }
+  .column-radios {
+    display: flex !important;
+    justify-content: center;
+  }
+  form {
+    width: 100%;
+  }
+  .invalid-feedback {
+    text-align: center;
+  }
+  h3 {
+    margin-bottom: 0.2em;
+  }
+</style>
+<div class="container">
+  <div class="row">
+    <div class="column">
+      <h3>Latest Messages</h3>
+      <div id="latest-messages">
+        <%= for message <- @latest_messages do %>
+          <div class="row">
+            <%= if @user_identifier == message.user_identifier do %>
+            <div class="column column-offset-25">
+              <div class="message-container-user">
+                <p class="user-id">You said <%= raw MessagesPoc.Message.emoji(message.type) %>:</p>
+                <p class="user-message"><%= message.text %></p>
+              </div>
+            </div>
+            <% else %>
+            <div class="column column-75">
+              <div class="message-container">
+                <p class="user-id"><%= message.user_identifier %> <%= raw MessagesPoc.Message.emoji(message.type) %></p>
+                <p class="user-message"><%= message.text %></p>
+              </div>
+            </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <div class="column column-25">
+      <h3>Users</h3>
+      <%= if !@initial_load do %>
+      <div id="users-list">
+        <div class="row">
+          <div class="column">
+            <div class="active-user-element">
+              <p class="user-id">YOU:<br/><%= @user_identifier %></p>
+            </div>
+          </div>
+        </div>
+        <%= for user <- @active_users do %>
+        <div class="row">
+          <div class="column">
+            <%= if user.identifier != @user_identifier do %>
+            <div class="user-element">
+              <p class="user-id"><%= user.identifier %></p>
+            </div>
+            <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="row">
+    <div id="input-container">
+      <.form let={form} for={@changeset} phx-submit="save" phx-change="validate">
+      <div class="row">
+        <div class="column column-radios">
+          <label>
+          <%= radio_button(form, :type, "note", checked: true) %>Note &#128221;
+          </label>
+        </div>
+        <div class="column column-radios">
+          <label>
+          <%= radio_button(form, :type, "flag") %>Flag &#128681;
+          </label>
+        </div>
+        <div class="column column-radios">
+          <label>
+          <%= radio_button(form, :type, "question") %>Question &#10067;
+          </label>
+        </div>
+      </div>
+      <%= hidden_input(form, :user_id, value: @user_id) %>
+      <%= textarea(form, :text) %>
+      <div class="row">
+        <div class="column column-25">
+          <%= if @submit_active do %>
+          <input id="submit" class="button" type="submit" value="Submit">
+          <% else %>
+          <input id="submit" class="button" value="Submit" disabled>
+          <% end %>
+        </div>
+        <div class="column">
+          <%= error_tag(form, :text) %>
+        </div>
+      </div>
+      </.form>
+    </div>
+  </div>
+</div>
