@@ -32,3 +32,6 @@ messages_poc-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Everything else
+.env
+levenshtein.exs
