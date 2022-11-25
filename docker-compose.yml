@@ -1,0 +1,24 @@
+version: '3.6'
+services:
+  db:
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    image: postgres:latest
+    restart: always
+    volumes:
+      - 'pgdata:/var/lib/postgresql/data'
+  web:
+    build: .
+    depends_on:
+      - db
+    env_file:
+      - .env
+    ports:
+      - '4000:4000'
+    volumes:
+      - .:/messages_poc
+volumes:
+  pgdata:

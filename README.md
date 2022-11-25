@@ -18,3 +18,13 @@ change and the list of users on the page will be updated.
 
 A new user is connected on every refresh as persistance across sessions wasn't
 useful for this test.
+
+## Getting Started
+To start this from scratch it'll be easiest to use Docker. This project also
+relies on Docker Compose. Before this, though, you'll need to create a `.env`
+file with a required ENV variable in it.
+* `echo -e "MIX_ENV=dev" >> .env`
+* `docker compose build`
+* `docker compose up`
+
+You should now be able to reach the site using `localhost:4000`.
