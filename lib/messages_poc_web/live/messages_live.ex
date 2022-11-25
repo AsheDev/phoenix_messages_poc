@@ -48,10 +48,7 @@ defmodule MessagesPocWeb.MessagesLive do
       {:ok, user} = Repo.insert(%User{identifier: user_identifier})
 
       # Track the "presence" of this new user
-      {:ok, _} = Presence.track(self(), @presence, user_identifier, %{
-        identifier: user_identifier,
-        joined_at: :os.system_time(:seconds)
-      })
+      {:ok, _} = Presence.track(self(), @presence, user_identifier, %{})
       # Subscribe this user's "presence" to the @presence topic
       PubSub.subscribe(MessagesPoc.PubSub, @presence)
 
@@ -91,6 +88,12 @@ defmodule MessagesPocWeb.MessagesLive do
       user_identifier: user.identifier
     }
     send(self(), {:save_user_message, message_data})
+    PubSub.broadcast(
+      MessagesPoc.PubSub,
+      @topic,
+      {:broadcast_latest, message_data}
+    )
+
     {:noreply,
       socket
       |> assign(:changeset, Message.default)
@@ -111,53 +114,33 @@ defmodule MessagesPocWeb.MessagesLive do
   end
 
   def handle_info({:save_user_message, message_data}, socket) do
-    {:ok, message} = Repo.insert(
+    Repo.insert(
       %Message{
         text: message_data.text,
         type: message_data.type,
         user_id: message_data.user_id
       }
     )
-    message = message |> Map.put(:user_identifier, message_data.user_identifier)
-    send(self(), {:add_to_latest_messages, message})
     {:noreply, socket}
-  end
-
-  def handle_info({:add_to_latest_messages, message_data}, socket) do
-    PubSub.broadcast_from(
-      MessagesPoc.PubSub, self(), @topic, {:broadcast_latest, message_data})
-    send(self(), {:local_latest, message_data})
-    {:noreply, socket}
-  end
-
-  def handle_info({:local_latest, message_data}, socket) do
-    message = message_data
-    {:noreply, update(socket, :latest_messages, &([message] ++ &1)) }
   end
 
   def handle_info({:broadcast_latest, message_data}, socket) do
-    message = message_data
-    {:noreply, update(socket, :latest_messages, &([message] ++ &1)) }
+    {:noreply, update(socket, :latest_messages, &([message_data] ++ &1)) }
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff", payload: diff}, socket) do
-    {
-      :noreply,
-      socket
-      |> handle_leaves(diff.leaves)
-      |> handle_joins(diff.joins)
-    }
+    {:noreply, socket |> handle_leaves(diff.leaves) |> handle_joins(diff.joins)}
   end
 
   defp handle_joins(socket, joins) do
-    Enum.reduce(joins, socket, fn {_user, %{metas: [meta| _]}}, socket ->
-      update(socket, :active_users, &(&1 ++ [meta]))
+    Enum.reduce(joins, socket, fn {user_identifier, _meta}, socket ->
+      update(socket, :active_users, &(&1 ++ [%{identifier: user_identifier}]))
     end)
   end
 
   defp handle_leaves(socket, leaves) do
-    Enum.reduce(leaves, socket, fn {_user, %{metas: [meta| _]}}, socket ->
-      update(socket, :active_users, &(&1 -- [meta]))
+    Enum.reduce(leaves, socket, fn {user_identifier, _meta}, socket ->
+      update(socket, :active_users, &(&1 -- [%{identifier: user_identifier}]))
     end)
   end
 end
